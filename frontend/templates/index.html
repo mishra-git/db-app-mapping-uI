@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database & Application Tracking</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <style>
+        /* Reduce row padding for tighter spacing */
+        .table th, .table td {
+            padding: 5px; /* Decrease padding */
+            font-size: 14px; /* Optional: Slightly smaller font */
+        }
+        .company-logo {
+        height: 50px; /* Adjust as needed */
+     max-width: 150px; /* Prevents oversized logos */
+    }
+
+    </style>
+    
+</head>
+<body class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <h2>Database & Application Tracking</h2>
+        <img src="static/images/carmax1.png" alt="Company Logo" class="company-logo">
+
+    </div>
+    
+    
+
+    <!-- Alert Messages -->
+    <div id="alert-box" class="alert text-center d-none" role="alert"></div>
+
+    
+    <div class="d-flex align-items-center mt-3">
+        <label for="db-type-filter" class="form-label me-2"><strong>Filter by Database Type:</strong></label>
+        <select id="db-type-filter" class="form-select" style="width: auto;" onchange="fetchMappings()">
+            <option value="SQL Server" selected>SQL Server</option>
+            <option value="Oracle">Oracle</option>
+            <option value="MySQL">MySQL</option>
+            <option value="PostgreSQL">PostgreSQL</option>
+            <option value="All">All</option>
+        </select>
+    </div>
+    
+    
+    <!-- Table -->
+    <table class="table table-bordered table-striped table-hover mt-4" style="width: 100%;">
+
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Application</th>
+                <th>Database</th>
+                <th>Instance</th>
+                <th>DBType</th>
+                <th>Team</th>
+                <th>Environment</th>
+                <th>Owner</th>
+                <th>DBOwner</th>
+                <th>AppContacts</th>
+                <th>CreatedAt</th>
+                <th>UpdatedAt</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="data-table">
+            <!-- Data will be inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Form -->
+    <h3 class="mt-4">Add / Update Mapping</h3>
+    <form id="add-form" class="row g-3">
+        <input type="hidden" id="mapping-id">
+    
+        <div class="col-md-4">
+            <label for="app-name" class="form-label">Application Name</label>
+            <input type="text" id="app-name" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="db-name" class="form-label">Database Name</label>
+            <input type="text" id="db-name" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="instance-name" class="form-label">Instance Name</label>
+            <input type="text" id="instance-name" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="db-type" class="form-label">Database Type</label>
+            <input type="text" id="db-type" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="team-name" class="form-label">Team Name</label>
+            <input type="text" id="team-name" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="environment" class="form-label">Environment</label>
+            <input type="text" id="environment" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="server-owner" class="form-label">Server Owner</label>
+            <input type="text" id="server-owner" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="db-owner" class="form-label">Database Owner</label>
+            <input type="text" id="db-owner" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label for="app-contacts" class="form-label">Application Contacts</label>
+            <input type="text" id="app-contacts" class="form-control" required>
+        </div>
+    
+        <div class="col-12 text-center">
+            <button type="submit" class="btn btn-primary">Save Mapping</button>
+        </div>
+    </form>
+    
+
+    <script>
+        const apiBaseUrl = "http://127.0.0.1:8000";
+
+        function showAlert(message, type = "success") {
+            const alertBox = document.getElementById("alert-box");
+            alertBox.className = `alert alert-${type} text-center`;
+            alertBox.textContent = message;
+            alertBox.classList.remove("d-none");
+
+            setTimeout(() => {
+                alertBox.classList.add("d-none");
+            }, 3000);
+        }
+
+        function fetchMappings() {
+    console.log("🔄 Fetching data from API...");
+
+    fetch(`${apiBaseUrl}/mappings`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("✅ API Response:", data);
+
+            const tableBody = document.getElementById("data-table");
+            tableBody.innerHTML = "";  
+
+            // Get selected database type from the dropdown
+            const selectedType = document.getElementById("db-type-filter").value;
+            console.log("🔎 Selected Filter:", selectedType);
+
+            data.forEach(item => {
+                // Apply filter: Show only selected database type (or all if "All" is selected)
+                if (selectedType === "All" || item.database_type === selectedType) {
+                    console.log("✔️ Displaying row:", item);
+
+                    const row = `<tr>
+                        <td>${item.id}</td>
+                        <td>${item.application_name}</td>
+                        <td>${item.database_name}</td>
+                        <td>${item.instance_name}</td>
+                        <td>${item.database_type}</td>
+                        <td>${item.team_name}</td>
+                        <td>${item.environment}</td>
+                        <td>${item.server_owner}</td>
+                        <td>${item.database_owner}</td>
+                        <td>${item.application_contacts.replace(/\n/g, "<br>")}</td>
+                        <td>${item.created_at ? item.created_at : "N/A"}</td>
+                        <td>${item.updated_at ? item.updated_at : "N/A"}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editMapping(${item.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteMapping(${item.id})">Delete</button>
+                        </td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                }
+            });
+
+            console.log("✅ Data successfully filtered and added to table.");
+        })
+        .catch(error => {
+            console.error("❌ Error fetching data:", error);
+            showAlert("❌ Error fetching data: " + error, "danger");
+        });
+}
+
+
+
+        document.getElementById("add-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            showAlert("Form submitted, updating database...", "info");
+            fetchMappings();
+        });
+
+        window.onload = fetchMappings;
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+  
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    console.log("✅ JavaScript is running!");  // Test if JS loads
+</script>
+</body>
+</html>
+
+    
+
+</body>
+</html>
